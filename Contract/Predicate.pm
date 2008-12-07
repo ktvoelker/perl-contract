@@ -2,12 +2,11 @@
 package Contract::Predicate;
 
 use strict;
-use warnings;
 
-use Exporter;
+use Exporter qw/import/;
 our @EXPORT = qw/
-	repeats is_list_of is_int is_class is_num_value is_str_value is_one_of
-	is_all_of inverse is_none_of is_not_all_of
+	two_of repeats repeats_n list_of integer class num_val str_val one_of
+	all_of inverse none_of not_all_of meets
 /;
 
 use overload '""' => \&to_string;
@@ -30,7 +29,38 @@ sub to_string {
 	return $self->{'to_string'}->();
 }
 
-sub repeats {
+sub meets ($) {
+	my ($pred) = @_;
+	return __PACKAGE__->new($pred, $pred);
+}
+
+sub two_of ($) {
+	my ($pred) = @_;
+	return repeats_n($pred, 2, 2);
+}
+
+sub repeats_n ($$$) {
+	my ($pred, $min, $max) = @_;
+	return __PACKAGE__->new(
+		sub {
+			my $count = 0;
+			foreach (@_) {
+				++$count;
+				return 0 unless $pred->accepts($_);
+			}
+			return 0 if $count < $min || $count > $max;
+			return 1;
+		},
+		sub {
+			return 
+				"repeat $min" . 
+				($max == $min ? '' : " to $max") . 
+				" times ($pred)";
+		}
+	);
+}
+
+sub repeats ($) {
 	my ($pred) = @_;
 	return __PACKAGE__->new(
 		sub {
@@ -45,7 +75,7 @@ sub repeats {
 	);
 }
 
-sub is_list_of {
+sub list_of {
 	my (@preds) = @_;
 	return __PACKAGE__->new(
 		sub {
@@ -61,7 +91,7 @@ sub is_list_of {
 	);
 }
 
-sub is_int {
+sub integer () {
 	return __PACKAGE__->new(
 		sub {
 			my $n = shift;
@@ -74,7 +104,7 @@ sub is_int {
 	);
 }
 
-sub is_class {
+sub class ($) {
 	my ($type) = @_;
 	return __PACKAGE__->new(
 		sub {
@@ -93,7 +123,7 @@ sub is_class {
 	);
 }
 
-sub is_num_value {
+sub num_val ($) {
 	my ($val) = @_;
 	return __PACKAGE__->new(
 		sub {
@@ -104,10 +134,10 @@ sub is_num_value {
 		sub {
 			return "== $val";
 		}
-	});
+	);
 }
 
-sub is_str_value {
+sub str_val ($) {
 	my ($val) = @_;
 	return __PACKAGE__->new(
 		sub {
@@ -118,10 +148,10 @@ sub is_str_value {
 		sub {
 			return "eq $val";
 		}
-	});
+	);
 }
 
-sub is_one_of {
+sub one_of {
 	my (@preds) = @_;
 	return __PACKAGE__->new(
 		sub {
@@ -140,7 +170,7 @@ sub is_one_of {
 	);
 }
 
-sub is_all_of {
+sub all_of {
 	my (@preds) = @_;
 	return __PACKAGE__->new(
 		sub {
@@ -159,7 +189,7 @@ sub is_all_of {
 	);
 }
 
-sub inverse {
+sub inverse ($) {
 	my ($pred) = @_;
 	return __PACKAGE__->new(
 		sub {
@@ -171,11 +201,11 @@ sub inverse {
 	);
 }
 
-sub is_none_of {
+sub none_of {
 	return inverse(is_one_of(@_));
 }
 
-sub is_not_all_of {
+sub not_all_of {
 	return inverse(is_all_of(@_));
 }
 

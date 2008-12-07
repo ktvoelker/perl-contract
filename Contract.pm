@@ -2,12 +2,13 @@
 package Contract;
 
 use strict;
-use warnings;
 
-use Exporter;
+use Exporter qw/import/;
 our @EXPORT = qw/contract/;
 
 use Carp qw/croak/;
+
+use Sub::Override;
 
 use Contract::Predicate;
 
@@ -16,10 +17,15 @@ my $err_not_pred = "Not a predicate";
 my $err_arg_contract = "Argument contract violated: expected ";
 my $err_ret_contract = "Return contract violated: expected ";
 
-sub contract {
+# When an override objects get destroyed, the original subroutine is 
+# restored. To avoid that happening, we keep all the override objects.
+my @overs;
+
+sub contract ($$$) {
 	my ($sub_name, $args_predicate, $return_predicate) = @_;
 	my ($in_package) = caller;
-	my $original_sub = eval "\\&$in_package::$sub_name";
+	my $full_sub_name = $in_package . '::' . $sub_name;
+	my $original_sub = eval "\\&$full_sub_name";
 	if ($@) {
 		croak $err_not_sub;
 	}
@@ -64,10 +70,11 @@ sub contract {
 			croak $err_arg_contract . $args_predicate;
 		}
 	};
-	eval "\\*$in_package::$sub_name = \$contract_sub";
-	if ($@) {
+	my $over;
+	unless ($over = Sub::Override->new($full_sub_name, $contract_sub)) {
 		croak "Error adding contract to subroutine";
 	}
+	push @overs, $over;
 	return undef;
 }
 
