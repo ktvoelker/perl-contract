@@ -19,7 +19,7 @@ use strict;
 use Exporter qw/import/;
 our @EXPORT = qw/
 	two_of repeats repeats_n list_of integer class num_val str_val one_of
-	all_of inverse none_of not_all_of meets
+	all_of inverse none_of not_all_of meets anything
 /;
 
 use overload '""' => \&to_string;
@@ -40,6 +40,17 @@ sub accepts {
 sub to_string {
 	my ($self) = @_;
 	return $self->{'to_string'}->();
+}
+
+sub anything () {
+	return __PACKAGE__->new(
+		sub {
+			return 1;
+		},
+		sub {
+			return 'anything';
+		}
+	);
 }
 
 sub meets ($) {
