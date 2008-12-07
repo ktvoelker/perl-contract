@@ -5,7 +5,10 @@ use strict;
 use warnings;
 
 use Exporter;
-our @EXPORT = qw//;
+our @EXPORT = qw/
+	repeats is_list_of is_int is_class is_num_value is_str_value is_one_of
+	is_all_of inverse is_none_of is_not_all_of
+/;
 
 use overload '""' => \&to_string;
 
